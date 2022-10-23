@@ -64,35 +64,41 @@ alice_api_key = "76dbde271bef0cdb741476db48ce46d5f3f75f6cc93444bbd66602694ca0f86
 alice_api_secret = "134eae46791bb51e569d4af8cd2ea08f52a0ca7be0db9e967b7d75ffec812a2a"
 bob_api_key = "7tfcMnSKQd2FzQUZg7A6xkcr8zS9JHXiLri9TEsEmjTDIf6XRR5kk2Qyc5GFRwIC"
 bob_api_secret = "0vFLSLlBi4m59B9zICEc5DpoBkWiuitYvIORULeXnQHMoKb6FzWZ7pvVqJICsWTZ"
-#markets = ['ETHUSDT', "WOOUSDT"]
-markets = ["WOOUSDT","JSTUSDT", "MDXUSDT", "GTCUSDT", "DUSKUSDT",  "REEFUSDT", "COTIUSDT",
-        "MTLUSDT", "LITUSDT", "LINAUSDT", "MIRUSDT", "SUNUSDT", "LAZIOUSDT", "PORTOUSDT","JSTUSDT", "MKRUSDT", "SUNUSDT",
-        "ANCUSDT", "DYDXUSDT","ETHUSDT","KLAYUSDT", "ATAUSDT",  "BTCDOMUSDT", "API3USDT","GMTUSDT",
-          "AXSUSDT","KSMUSDT", "ENSUSDT", "UNIUSDT"]
+markets = ['ETHUSDT', "WOOUSDT", "ENSUSDT","REEFUSDT", "KLAYUSDT"]
+#markets = ["WOOUSDT","JSTUSDT", "MDXUSDT", "GTCUSDT", "DUSKUSDT",  "REEFUSDT", "COTIUSDT",
+#        "MTLUSDT", "LITUSDT", "LINAUSDT", "MIRUSDT", "SUNUSDT", "LAZIOUSDT", "PORTOUSDT","JSTUSDT", "MKRUSDT", "SUNUSDT",
+#        "ANCUSDT", "DYDXUSDT","ETHUSDT","KLAYUSDT", "ATAUSDT",  "BTCDOMUSDT", "API3USDT","GMTUSDT",
+#          "AXSUSDT","KSMUSDT", "ENSUSDT", "UNIUSDT"]
 channels = ['bookTicker']
+def set_spread(k,spot_price,fut_price):
+    pr = float(spot_price)
+    res.setdefault(k, ((pr - float(fut_price)) / pr) * 100)
+    return res
 
 dollars = 50
 def get_price(prices_futures):
-
+    res={}
     #print(prices_futures)
     if "exch" in prices_futures:
         fut_data.update({prices_futures["symbol"]: prices_futures["best_bid_price"]})
     else:
         spot_data.update({prices_futures["symbol"]: prices_futures["best_bid_price"]})
-    #print(spot_data, fut_data)
-    #time.sleep(1)
+
     for k, v in fut_data.items():
         if k in spot_data.keys():
             #print(spot_data.keys())
             #if type(spot_data[k]) == str:
+            #spred = set_spread(k,spot_data[k],v)
+
             pr = float(spot_data[k])
             res.setdefault(k, ((pr - float(v))/pr)*100)
+            #print("_", set_spread(k, spot_data[k], v))
             edata.update(res)
             sorted_prices = dict(sorted(edata.items(), key=lambda item: item[1]))
             ticker = str(max(sorted_prices.keys()))
             price_ticker = [max(sorted_prices.values()), max(sorted_prices.keys()), spot_data[ticker], fut_data[ticker]]
             get_signal(price_ticker)
-            print(fut_data, spot_data)
+            print(sorted_prices)
 def get_signal(data):
     if  (type(data[0]) == float):
         signal_data.update({"signal": data[0], "symbol": data[1], "price_spot": data[2], "price_fut": data[3]})
