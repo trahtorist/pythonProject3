@@ -26,89 +26,35 @@ pd.set_option('display.width', 1000)
 xdata = {}
 def order_buy_move(id,ticker,price_order,price):
     if price_order < price:
-        order.cancel_order_spot(symbol=ticker, orderId=id)
+        client_spot.cancel_order_spot(symbol=ticker, orderId=id)
         xdata.update({"order_sent": "Kill_spot"})
         print("order_buy_move", xdata)
 
 def new_price (price2, symbol2):
-    print(price2, symbol2, pricePrecision[symbol2])
+    #print("new_price", price2, symbol2, pricePrecision[symbol2])
     new_qt = "{:0.0{}f}".format(float(price2), pricePrecision[symbol2])
     return new_qt
 def new_qty(qty2, symbol2):
     #print(qty2, symbol2, quantityPrecision[symbol2])
     new_ro = "{:0.0{}f}".format(float(qty2), quantityPrecision[symbol2])
-    print(new_ro)
+    #print(new_ro)
     return new_ro
 def get_veracity():
-    info = order.client_fut.futures_exchange_info()
+    info = client_fut.futures_exchange_info()
     quantityPrecision.update({si['symbol']: si['quantityPrecision'] for si in info['symbols'] if si['symbol'] in markets})
     pricePrecision.update({si['symbol']: si['pricePrecision'] for si in info['symbols'] if si['symbol'] in markets})
 
-def order_fut(binance_websocket_api_manager, stream_id):
-    #print(binance_websocket_api_manager, stream_id)
-    while True:
-        if binance_websocket_api_manager.is_manager_stopping():
-            exit(0)
-        oldest_stream_data_from_stream_buffer = binance_websocket_api_manager.pop_stream_data_from_stream_buffer(
-            stream_id)
-        if oldest_stream_data_from_stream_buffer is False:
-            time.sleep(0.01)
-        else:
-            unicorn_fied_stream_data = unicornfy.binance_futures_websocket(oldest_stream_data_from_stream_buffer)
-
-            if "symbol" in unicorn_fied_stream_data:
-                order_futures = ["order_fut",
-                                 unicorn_fied_stream_data["symbol"],
-                                 unicorn_fied_stream_data["side"],
-                                 unicorn_fied_stream_data["order_id"],
-                                 unicorn_fied_stream_data["current_order_status"],
-                                 unicorn_fied_stream_data["order_quantity"],
-                                 unicorn_fied_stream_data["order_price"],
-                                 unicorn_fied_stream_data["event_type"],
-
-                                 unicorn_fied_stream_data["unicorn_fied"][0]]
-                get_signal(order_futures)
-                if  unicorn_fied_stream_data["current_order_status"] == "FILLED":
-                    print("order_fut_FILLED", unicorn_fied_stream_data["symbol"], unicorn_fied_stream_data["order_price"])
-
-            #print(unicorn_fied_stream_data)
-def order_spot(binance_websocket_api_manager, stream_id):
-    while True:
-        if binance_websocket_api_manager.is_manager_stopping():
-            exit(0)
-        oldest_stream_data_from_stream_buffer = binance_websocket_api_manager.pop_stream_data_from_stream_buffer(
-            stream_id)
-        if oldest_stream_data_from_stream_buffer is False:
-            time.sleep(0.01)
-        else:
-            unicorn_fied_stream_data = unicornfy.binance_com_websocket(oldest_stream_data_from_stream_buffer)
-            #print(unicorn_fied_stream_data)
-            time.sleep(3)
-
-            if "symbol" in unicorn_fied_stream_data:
-                order_spo = ["order_spot",
-                                 unicorn_fied_stream_data["side"],
-                                 unicorn_fied_stream_data["symbol"],
-                                 unicorn_fied_stream_data["order_id"],
-                                 unicorn_fied_stream_data["current_order_status"],
-                                 unicorn_fied_stream_data["order_quantity"],
-                                 unicorn_fied_stream_data["order_price"],
-                                 unicorn_fied_stream_data["event_type"],
-                                 unicorn_fied_stream_data["unicorn_fied"][0]]
-                get_signal(order_spo)
-                if  unicorn_fied_stream_data["current_order_status"] ==  "FILLED":
-                    print("order_spot_FILLED", unicorn_fied_stream_data["symbol"],unicorn_fied_stream_data["order_price"])
-
 
 def new_order_fut(symbol, side, type, quantity, price):
-    print("send order futures", quantity, price, symbol)
+    #print("send order futures", quantity, price, symbol)
     client_fut.futures_create_order(symbol=symbol, side=side, type=type,
                                     quantity=quantity, price=price, timeInForce="GTC")
 
 def new_order_spot(symbol, side, type, quantity, price):
-    print("send order spot", quantity, price, symbol)
+    #print("отправил спот ордер__", symbol, side, type, quantity, price)
     client_spot.create_order(symbol=symbol, side=side, type=type, quantity=quantity,
                              price=price, timeInForce="GTC")
+
 
 def cancel_order_spot(symbol,orderId):
     client_spot.cancel_order(symbol=symbol, orderId=orderId, timestamp=True)
@@ -131,10 +77,10 @@ def top_coin():
 class str2(str):
     def __repr__(self):
         return ''.join(('"', super().__repr__()[1:-1], '"'))
-markets = ["WOOUSDT","JSTUSDT", "MDXUSDT", "GTCUSDT", "DUSKUSDT",  "REEFUSDT", "COTIUSDT",
+markets = ["WOOUSDT","JSTUSDT", "MDXUSDT", "GTCUSDT", "DUSKUSDT",  "REEFUSDT", "COTIUSDT","BTCUSDT",
         "MTLUSDT", "LITUSDT", "LINAUSDT", "MIRUSDT", "SUNUSDT", "LAZIOUSDT", "PORTOUSDT","JSTUSDT", "MKRUSDT", "SUNUSDT",
         "ANCUSDT", "DYDXUSDT","ETHUSDT","KLAYUSDT", "ATAUSDT",  "BTCDOMUSDT", "API3USDT","GMTUSDT",
-           "AXSUSDT","KSMUSDT", "ENSUSDT", "UNIUSDT"]
+           "AXSUSDT","KSMUSDT", "ENSUSDT", "UNIUSDT","TRXUSDT", "BNBUSDT", "LTCUSDT", "XRPUSDT"]
 quantityPrecision = {}
 pricePrecision = {}
 def get_veracity():
@@ -146,13 +92,13 @@ def get_veracity():
 
 if __name__ == '__main__':
     get_veracity()
-    print(quantityPrecision, pricePrecision)
+    #print(quantityPrecision, pricePrecision)
     #xdata = {}
-    #new_order_spot("ETHUSDT", "BUY", "LIMIT", "0.01", "1300")
+    #new_order_fut("BTCUSDT", "BUY", "LIMIT", "0.18", "20946")
 
-    #for order in client_spot.get_open_orders():
-        #cancel_order_spot(symbol="ETHUSDT", orderId=order["orderId"])
-        #print(order)
+    for order in client_spot.get_open_orders():
+        cancel_order_spot(symbol="BNBUSDT", orderId=order["orderId"])
+        print(order)
     #cancel_order_spot(symbol="ETHUSDT",orderId ="2753763")
 
     #print(
@@ -161,9 +107,9 @@ if __name__ == '__main__':
     #for x in range(len(info)):  # find length of list and run loop
     #print(data)
 
-    spot_orders = pd.DataFrame(client_spot.get_all_orders(symbol="ETHUSDT"), columns=['orderId', 'type', 'side', 'price', 'status'])
-    #fut_orders = pd.DataFrame(client_fut.futures_get_all_orders(symbol="ETHUSDT"),  columns=['orderId', 'type', 'side', 'price', 'status'])
-    print(spot_orders)
+    spot_orders = pd.DataFrame(client_spot.get_all_orders(symbol="BNBUSDT"), columns=['orderId', 'type', 'side', 'price', 'status'])
+    fut_orders = pd.DataFrame(client_fut.futures_get_all_orders(symbol="BTCUSDT"),  columns=['orderId', 'type', 'side', 'price', 'status'])
+    print(fut_orders)
     #print(fut_orders)
     #cancel_order_fut(symbol="ETHUSDT", orderId="959546411")
     #client_fut.API_URL = 'https://testnet.binancefuture.com'
@@ -203,4 +149,3 @@ if __name__ == '__main__':
 
    # except ClientError as e:
        # print(e.error_code, e.error_message)
-
