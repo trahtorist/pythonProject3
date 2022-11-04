@@ -67,7 +67,7 @@ alice_api_key = "76dbde271bef0cdb741476db48ce46d5f3f75f6cc93444bbd66602694ca0f86
 alice_api_secret = "134eae46791bb51e569d4af8cd2ea08f52a0ca7be0db9e967b7d75ffec812a2a"
 bob_api_key = "7tfcMnSKQd2FzQUZg7A6xkcr8zS9JHXiLri9TEsEmjTDIf6XRR5kk2Qyc5GFRwIC"
 bob_api_secret = "0vFLSLlBi4m59B9zICEc5DpoBkWiuitYvIORULeXnQHMoKb6FzWZ7pvVqJICsWTZ"
-markets = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'LTCUSDT', 'TRXUSDT', 'BNBUSDT']
+markets = ['ETHUSDT', 'XRPUSDT', 'LTCUSDT', 'TRXUSDT', 'BNBUSDT']
 #markets = ["WOOUSDT","JSTUSDT", "MDXUSDT", "GTCUSDT", "DUSKUSDT",  "REEFUSDT", "COTIUSDT",
        # "MTLUSDT", "LITUSDT", "LINAUSDT", "MIRUSDT", "SUNUSDT", "LAZIOUSDT", "PORTOUSDT","JSTUSDT", "MKRUSDT", "SUNUSDT",
        # "ANCUSDT", "DYDXUSDT","ETHUSDT","KLAYUSDT", "ATAUSDT",  "BTCDOMUSDT", "API3USDT","GMTUSDT",
@@ -100,16 +100,16 @@ def order_fut(binance_fut_api_manager, fut_stream_id):
                              unicorn_fied_stream_data["unicorn_fied"][0]]
 
                     if unicorn_fied_stream_data["current_order_status"] == "NEW":
-                        print("Новая заявка фьючерс")
+                        print("Новая заявка фьючерс ", unicorn_fied_stream_data["side"])
                     if unicorn_fied_stream_data["current_order_status"] == "FILLED":
-                        print("Заявка на фьючерс исполнена")
+                        print("Заявка на фьючерс исполнена ", unicorn_fied_stream_data["side"])
                     if unicorn_fied_stream_data["current_order_status"] == "PARTIALLY_FILLED":
                         print("Заявка на фьючерс исполнена частично",
                               unicorn_fied_stream_data["last_executed_quantity"],
                               unicorn_fied_stream_data["cumulative_filled_quantity"])
 
                     if unicorn_fied_stream_data["current_order_status"] == "CANCELED":
-                        print("Заявка на фьючерс отменено")
+                        print("Заявка на фьючерс отменено", unicorn_fied_stream_data["side"])
                     get_signal(order_spo)
                 if unicorn_fied_stream_data["event_type"] == "ACCOUNT_UPDATE":
                     print("balances:", unicorn_fied_stream_data["balances"][0]["asset"],
@@ -148,16 +148,16 @@ def order_spot(binance_spot_api_manager, stream_id):
                     get_signal(order_spo)
 
                     if unicorn_fied_stream_data["current_order_status"] == "NEW":
-                        print("Новая заявка спот")
+                        print("Новая заявка спот ", unicorn_fied_stream_data["side"])
 
                     if unicorn_fied_stream_data["current_order_status"] == "FILLED":
-                        print("Заявка спот исполнена")
+                        print("Заявка спот исполнена ", unicorn_fied_stream_data["side"])
 
 
 
-                if unicorn_fied_stream_data["event_type"] == ["outboundAccountPosition"]:
-                    print(unicorn_fied_stream_data["balances"][0]["free"],
-                        unicorn_fied_stream_data["balances"][0]["asset"])
+                #if unicorn_fied_stream_data["event_type"] == ["outboundAccountPosition"]:
+                    #print(unicorn_fied_stream_data["balances"][0]["free"],
+                       # unicorn_fied_stream_data["balances"][0]["asset"])
 
 def set_spread(k,spot_price,fut_price):
     pr = float(spot_price)
@@ -205,14 +205,17 @@ def get_signal(data):
         order_data = []
 
     #старт
-    if len(signal_data) > 0 and xdata == {}:
-        qty = order.new_qty(dollars / float(signal_data["price_spot"]), signal_data["symbol"])
+
+    if len(signal_data) > 0 and xdata == {} and signal_data["signal"]>0.9:
+        qty = order.new_qty_spot(dollars / float(signal_data["price_spot"]), signal_data["symbol"])
         price = order.new_price(signal_data["price_spot"], signal_data["symbol"])
         #price2 = order.new_price(signal_data["price_fut"], signal_data["symbol"])
+        print(signal_data["signal"])
         print("BUY_SPOT_1", signal_data["symbol"], price)
-        front_run = order.new_price((float(price)*0.1)/100, signal_data["symbol"])
-        print(float(front_run)+float(price))
-        xdata.update({"order_sent": "BUY_SPOT_1", "symbol": signal_data["symbol"], "qty": qty, "price": price})
+        front_price = order.new_price_spot((float(price)*0.01)/100, signal_data["symbol"])
+        act_price = float(price) + float(front_price)
+        print(float(front_price)+float(price))
+        xdata.update({"order_sent": "BUY_SPOT_1", "symbol": signal_data["symbol"], "qty": qty, "price": act_price})
         order.new_order_spot(xdata["symbol"], "BUY", "LIMIT", qty, price)
 
     #if "order_spot_status" in xdata:
@@ -224,26 +227,33 @@ def get_signal(data):
             #order.order_buy_move(order_data[4], order_data[2], order_data[6], price3)
             #xdata.update({"order_sent": "order_buy_move"})
         # хеджируем позицию
-    if xdata['order_sent'] == 'BUY_SPOT_1':  #data[0] == "order_spot" and data[3] == "FILLED":
-        if xdata["symbol"] == signal_data["symbol"]:
-            xdata.update({"order_sent": "SELL_FUT_2", "order_spot_status": "expect"})
-            price2 = order.new_price(signal_data["price_fut"], signal_data["symbol"])
-            print("SELL_FUT_2", signal_data["symbol"], price2)
-            order.new_order_fut(xdata["symbol"], "SELL", "LIMIT", xdata['qty'], price2)
+    if 'order_sent' in xdata:
+        if xdata['order_sent'] == 'BUY_SPOT_1':  #data[0] == "order_spot" and data[3] == "FILLED":
+            if xdata["symbol"] == signal_data["symbol"]:
 
+                xdata.update({"order_sent": "SELL_FUT_2", "order_spot_status": "expect"})
+                price2 = signal_data["price_fut"]
+                front_price2 =order.new_price(float(price2) - (float(price2) * 0.01) / 100, signal_data["symbol"])
+                #act_price2 = float(price2)-float(front_price)
+                print(xdata['order_sent'], "SELL_FUT_2", signal_data["symbol"], price2,"-",front_price2)
+                order.new_order_fut(xdata["symbol"], "SELL", "LIMIT", xdata['qty'], front_price2)
+                print(xdata["symbol"], signal_data["symbol"])
         if xdata['order_sent'] == 'SELL_FUT_2':
             if xdata["symbol"] == signal_data["symbol"]:
                 xdata.update({"order_sent": "SELL_SPOT_3"})
-                price3 = order.new_price(signal_data["price_spot"], xdata["symbol"])
-                print("SELL_SPOT_3", xdata["symbol"], price3)
-                order.new_order_spot(xdata["symbol"], "SELL", "LIMIT", xdata['qty'], price3)
+                price3 = signal_data["price_spot"]
+                front_price3 =order.new_price_spot(float(price3) - (float(price3) * 0.01) / 100, signal_data["symbol"])
+                print(front_price3, "SELL_SPOT_3", xdata["symbol"], price3, xdata["order_sent"])
+                ord = order.new_order_spot(xdata["symbol"], "SELL", "LIMIT", xdata['qty'], front_price3)
+                print(ord,"new_order_spot")
 
         if xdata["order_sent"] == "SELL_SPOT_3":
             if xdata["symbol"] == signal_data["symbol"]:
                 xdata.update({"order_sent": "BUY_FUT_4"})
                 price4 = order.new_price(signal_data["price_spot"], xdata["symbol"])
-                order.new_order_fut(xdata["symbol"], "BUY", "LIMIT", xdata['qty'], price4)
-                print("BUY_FUT_4", xdata["symbol"], price4)
+                front_price4 =order.new_price(float(price4) + (float(price4) * 0.01) / 100, signal_data["symbol"])
+                order.new_order_fut(xdata["symbol"], "BUY", "LIMIT", xdata['qty'], front_price4)
+                print("BUY_FUT_4", xdata["symbol"], front_price4)
 
 if __name__ == '__main__':
     order.get_veracity()

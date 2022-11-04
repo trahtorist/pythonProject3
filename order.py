@@ -1,4 +1,5 @@
 import json
+import math
 from datetime import datetime
 from binance.helpers import round_step_size
 
@@ -17,8 +18,8 @@ fut_api_secret = '134eae46791bb51e569d4af8cd2ea08f52a0ca7be0db9e967b7d75ffec812a
 client_fut = Client(fut_api_key, fut_api_secret, testnet=True)
 
 
-client_spot = Client(spot_api_key, spot_api_secret, testnet=True)
-client_spot.API_URL = "https://testnet.binance.vision"
+client_spot = Client(spot_api_key, spot_api_secret)#, testnet=True)
+client_spot.API_URL = "https://api1.binance.com" #"https://testnet.binance.vision"
 #print(client_spot.API_URL )
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -43,7 +44,9 @@ def get_veracity():
     info = client_fut.futures_exchange_info()
     quantityPrecision.update({si['symbol']: si['quantityPrecision'] for si in info['symbols'] if si['symbol'] in markets})
     pricePrecision.update({si['symbol']: si['pricePrecision'] for si in info['symbols'] if si['symbol'] in markets})
-
+    info2 = client_spot.get_exchange_info() # futures_exchange_info()
+    PRICE_FILTER.update({si['symbol']: si['filters'][0]["minPrice"]  for si in info2['symbols'] if si['symbol'] in markets})
+    LOT_SIZE.update({si['symbol']: si['filters'][2]["stepSize"] for si in info2['symbols'] if si['symbol'] in markets})
 
 def new_order_fut(symbol, side, type, quantity, price):
     #print("send order futures", quantity, price, symbol)
@@ -51,7 +54,7 @@ def new_order_fut(symbol, side, type, quantity, price):
                                     quantity=quantity, price=price, timeInForce="GTC")
 
 def new_order_spot(symbol, side, type, quantity, price):
-    #print("отправил спот ордер__", symbol, side, type, quantity, price)
+    print("отправил спот ордер__",price)
     client_spot.create_order(symbol=symbol, side=side, type=type, quantity=quantity,
                              price=price, timeInForce="GTC")
 
@@ -83,12 +86,16 @@ markets = ["WOOUSDT","JSTUSDT", "MDXUSDT", "GTCUSDT", "DUSKUSDT",  "REEFUSDT", "
            "AXSUSDT","KSMUSDT", "ENSUSDT", "UNIUSDT","TRXUSDT", "BNBUSDT", "LTCUSDT", "XRPUSDT"]
 quantityPrecision = {}
 pricePrecision = {}
-def get_veracity():
-    info = client_fut.futures_exchange_info()
-    #print(info)
-    quantityPrecision.update({si['symbol']: si['quantityPrecision'] for si in info['symbols'] if si['symbol'] in markets})
-    pricePrecision.update({si['symbol']: si['pricePrecision'] for si in info['symbols'] if si['symbol'] in markets})
+PRICE_FILTER={}
+LOT_SIZE={}
 
+def new_qty_spot(old_qty, symbol2):
+    qty = str(float(LOT_SIZE[symbol2])*math.floor(float(old_qty)/ float(LOT_SIZE[symbol2])))
+    return qty
+
+def new_price_spot (old_price, symbol2):
+    price = str(float(PRICE_FILTER[symbol2])*math.floor(float(old_price)/ float(PRICE_FILTER[symbol2])))
+    return price
 
 if __name__ == '__main__':
     get_veracity()
@@ -96,9 +103,13 @@ if __name__ == '__main__':
     #xdata = {}
     #new_order_fut("BTCUSDT", "BUY", "LIMIT", "0.18", "20946")
 
-    for order in client_spot.get_open_orders():
-        cancel_order_spot(symbol="BNBUSDT", orderId=order["orderId"])
-        print(order)
+    #print(PRICE_FILTER, LOT_SIZE)
+    #info2 = client_spot.get_exchange_info()  # futures_exchange_info()
+    #for si in info2['symbols'] :
+    #    print(si['symbol'])
+    #for order in client_spot.get_open_orders):
+       # cancel_order_spot(symbol="BNBUSDT", orderId=order["orderId"])
+        #print(order)
     #cancel_order_spot(symbol="ETHUSDT",orderId ="2753763")
 
     #print(
@@ -107,9 +118,9 @@ if __name__ == '__main__':
     #for x in range(len(info)):  # find length of list and run loop
     #print(data)
 
-    spot_orders = pd.DataFrame(client_spot.get_all_orders(symbol="BNBUSDT"), columns=['orderId', 'type', 'side', 'price', 'status'])
-    fut_orders = pd.DataFrame(client_fut.futures_get_all_orders(symbol="BTCUSDT"),  columns=['orderId', 'type', 'side', 'price', 'status'])
-    print(fut_orders)
+    #spot_orders = pd.DataFrame(client_spot.get_all_orders(symbol="BNBUSDT"), columns=['orderId', 'type', 'side', 'price', 'status'])
+    #fut_orders = pd.DataFrame(client_fut.futures_get_all_orders(symbol="BTCUSDT"),  columns=['orderId', 'type', 'side', 'price', 'status'])
+    #print(fut_orders)
     #print(fut_orders)
     #cancel_order_fut(symbol="ETHUSDT", orderId="959546411")
     #client_fut.API_URL = 'https://testnet.binancefuture.com'
@@ -119,10 +130,10 @@ if __name__ == '__main__':
     #client_fut_balance = client_fut.futures_account_balance()
     #print(client_fut_balance)
     #print(top_coin())
-    spot_balance = client_spot.get_asset_balance(asset='USDT')['free']
+    #spot_balance = client_spot.get_asset_balance(asset='USDT')['free']
 
-    spot_balance_eth = client_spot.get_asset_balance(asset='ETH')['free']
-    print(spot_balance, spot_balance_eth)
+    #spot_balance_eth = client_spot.get_asset_balance(asset='ETH')['free']
+    #print(spot_balance, spot_balance_eth)
     #print(client_spot_balance)
     #open_order = client_fut.get_open_orders()
     #print("open orders :", open_order)
