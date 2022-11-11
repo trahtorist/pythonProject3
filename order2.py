@@ -7,7 +7,9 @@ from binance.client import Client
 #from  binance.exceptions import ClientError
 import pandas as pd
 import time
-import main
+
+
+import main2
 from pandas import DataFrame
 spot_api_key = "7tfcMnSKQd2FzQUZg7A6xkcr8zS9JHXiLri9TEsEmjTDIf6XRR5kk2Qyc5GFRwIC"
 spot_api_secret = "0vFLSLlBi4m59B9zICEc5DpoBkWiuitYvIORULeXnQHMoKb6FzWZ7pvVqJICsWTZ"
@@ -66,7 +68,8 @@ def cancel_order_fut(symbol,orderId):
     print("cancel order futures")
     client_fut.cancel_order(symbol=symbol, orderId=orderId, timestamp=True)
 
-
+def get_price(data):
+    print(data)
 def top_coin():
     all_tickers = pd.DataFrame(client_spot.get_ticker())
     usdt = all_tickers[all_tickers.symbol.str.contains("USDT")]
@@ -80,10 +83,17 @@ def top_coin():
 class str2(str):
     def __repr__(self):
         return ''.join(('"', super().__repr__()[1:-1], '"'))
-markets = ["WOOUSDT","JSTUSDT", "MDXUSDT", "GTCUSDT", "DUSKUSDT",  "REEFUSDT", "COTIUSDT","BTCUSDT",
-        "MTLUSDT", "LITUSDT", "LINAUSDT", "MIRUSDT", "SUNUSDT", "LAZIOUSDT", "PORTOUSDT","JSTUSDT", "MKRUSDT", "SUNUSDT",
-        "ANCUSDT", "DYDXUSDT","ETHUSDT","KLAYUSDT", "ATAUSDT",  "BTCDOMUSDT", "API3USDT","GMTUSDT",
-           "AXSUSDT","KSMUSDT", "ENSUSDT", "UNIUSDT","TRXUSDT", "BNBUSDT", "LTCUSDT", "XRPUSDT"]
+
+
+market =  ["LINA_USDT","WOO_USDT"] #,"JST_USDT",  "DUSK_USDT",  "REEF_USDT", "MTL_USDT", "LIT_USDT",
+        #"DYDX_USDT","ETH_USDT","KLAY_USDT",
+        #   "AXS_USDT","KSM_USDT", "ENS_USDT", "UNI_USDT","TRX_USDT", "BNB_USDT", "LTC_USDT", "XRP_USDT"]
+def re_markets():
+    ff= []
+    for i in market:
+        ff.append(i.translate({ord(i): None for i in '_'}))
+    return ff
+markets = re_markets()
 quantityPrecision = {}
 pricePrecision = {}
 PRICE_FILTER={}
@@ -101,7 +111,7 @@ if __name__ == '__main__':
     get_veracity()
     #print(quantityPrecision, pricePrecision)
     #xdata = {}
-    #new_order_fut("BTCUSDT", "BUY", "LIMIT", "0.18", "20946")
+    new_order_fut("BTCUSDT", "BUY", "LIMIT", "0.18", "20946")
 
     #print(PRICE_FILTER, LOT_SIZE)
     #info2 = client_spot.get_exchange_info()  # futures_exchange_info()
